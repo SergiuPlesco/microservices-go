@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/SergiuPlesco/microservices-go/handlers"
+	"github.com/SergiuPlesco/microservices-go/net-http/handlers"
 )
 
 func main() {
