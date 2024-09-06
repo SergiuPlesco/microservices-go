@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,69 +10,47 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type Products struct {
-	l *log.Logger
-}
-
-func NewProducts(l *log.Logger) *Products {
-	return &Products{l}
-}
-
-func (p *Products) AddProduct(rw http.ResponseWriter, r *http.Request) {
-	p.l.Println("Handle POST Products")
-
-	prod := r.Context().Value(KeyProduct{}).(*data.Product)
-	data.AddProduct(prod)
-}
-
-func (p *Products) UpdateProduct(rw http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-
-	id, errId := strconv.Atoi(vars["id"])
-	if errId != nil {
-		http.Error(rw, "Unable to convert id to number", http.StatusBadRequest)
-		return
-	}
-
-	prod := r.Context().Value(KeyProduct{}).(*data.Product)
-
-	errUpdate := data.UpdateProduct(id, prod)
-	if errUpdate == data.ErrProductNotFound {
-		http.Error(rw, "Product not found", http.StatusNotFound)
-		return
-	}
-
-	if errUpdate != nil {
-		http.Error(rw, "Internal error", http.StatusInternalServerError)
-		return
-	}
-
-}
-
+// KeyProduct is a key used for the Product object in the context
 type KeyProduct struct{}
 
-func (p *Products) MiddlewareProductValidation(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		prod := &data.Product{}
+// Products handler for getting and updating products
+type Products struct {
+	l *log.Logger
+	v *data.Validation
+}
 
-		errJson := prod.FromJSON(r.Body)
-		if errJson != nil {
-			http.Error(rw, "Unable to parse json", http.StatusBadRequest)
-			return
-		}
+// NewProducts returns a new products handler with the given logger
+func NewProducts(l *log.Logger, v *data.Validation) *Products {
+	return &Products{l, v}
+}
 
-		errValidateProd := prod.Validate()
-		if errValidateProd != nil {
-			p.l.Println("[ERROR] validating product", errValidateProd)
-			http.Error(
-				rw,
-				fmt.Sprintf("Error validating poroduct: %s", errValidateProd),
-				http.StatusBadRequest,
-			)
-		}
+// ErrInvalidProductPath is an error message when the product path is not valid
+var ErrInvalidProductPath = fmt.Errorf("Invalid Path, path should be /products/[id]")
 
-		ctx := context.WithValue(r.Context(), KeyProduct{}, prod)
+// GenericError is a generic error message returned by a server
+type GenericError struct {
+	Message string `json:"message"`
+}
 
-		next.ServeHTTP(rw, r.WithContext(ctx))
-	})
+// ValidationError is a collection of validation error messages
+type ValidationError struct {
+	Messages []string `json:"messages"`
+}
+
+// getProductID returns the product ID from the URL
+// Panics if cannot convert the id into an integer
+// this should never happen as the router ensures that
+// this is a valid number
+func getProductID(r *http.Request) int {
+	// parse the product id from the url
+	vars := mux.Vars(r)
+
+	// convert the id into an integer and return
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		// should never happen
+		panic(err)
+	}
+
+	return id
 }

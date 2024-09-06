@@ -1,17 +1,3 @@
-// Package classification of Product API
-//
-// Documentation for Product API
-// Schemes: http
-// BasePath: /
-// Version: 1.0.0
-//
-// Consumes:
-// - application/json
-//
-// Produces:
-// - application/json
-//
-// swagger:meta
 package main
 
 import (
@@ -22,28 +8,41 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/SergiuPlesco/microservices-go/gorilla/data"
 	"github.com/SergiuPlesco/microservices-go/gorilla/handlers"
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
 )
 
 func main() {
 	l := log.New(os.Stdout, "gorilla", log.LstdFlags)
+	v := data.NewValidation()
 
 	// create the handlers
-	pl := handlers.NewProducts(l)
+	pl := handlers.NewProducts(l, v)
 
 	// create a new serve mux and register the handlers
 	sm := mux.NewRouter()
-	getRouter := sm.Methods("GET").Subrouter()
-	getRouter.HandleFunc("/", pl.GetProducts)
+	getRouter := sm.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/products", pl.ListAll)
+	getRouter.HandleFunc("/products/{id:[0-9]+}", pl.ListSingle)
 
 	putRouter := sm.Methods(http.MethodPut).Subrouter()
-	putRouter.HandleFunc("/{id:[0-9]+}", pl.UpdateProduct)
-	putRouter.Use(pl.MiddlewareProductValidation)
+	putRouter.HandleFunc("/products", pl.Update)
+	putRouter.Use(pl.MiddlewareValidateProduct)
 
 	postRouter := sm.Methods(http.MethodPost).Subrouter()
-	postRouter.HandleFunc("/", pl.AddProduct)
-	postRouter.Use(pl.MiddlewareProductValidation)
+	postRouter.HandleFunc("/products", pl.Create)
+	postRouter.Use(pl.MiddlewareValidateProduct)
+
+	deleteRouter := sm.Methods(http.MethodDelete).Subrouter()
+	deleteRouter.HandleFunc("/{id:[0-9]+}", pl.Delete)
+
+	opts := middleware.RedocOpts{SpecURL: "/swagger.yaml"}
+	sh := middleware.Redoc(opts, nil)
+
+	getRouter.Handle("/docs", sh)
+	getRouter.Handle("/swagger.yaml", http.FileServer(http.Dir("./")))
 
 	// create new server
 	s := &http.Server{
