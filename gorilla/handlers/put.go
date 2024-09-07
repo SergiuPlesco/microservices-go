@@ -6,7 +6,7 @@ import (
 	"github.com/SergiuPlesco/microservices-go/gorilla/data"
 )
 
-// swagger:route PUT /products products updateProduct
+// swagger:route PUT /products{id} products updateProduct
 // Update a products details
 //
 // responses:

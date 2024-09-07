@@ -3,3 +3,6 @@ install-swagger:
 
 swagger:
 	swagger generate spec -o ./swagger.yaml --scan-models
+
+client:
+	swagger generate client -f ../gorilla/swagger.yaml -A product-api
