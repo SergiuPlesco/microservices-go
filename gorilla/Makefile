@@ -5,4 +5,4 @@ swagger:
 	swagger generate spec -o ./swagger.yaml --scan-models
 
 client:
-	swagger generate client -f ../gorilla/swagger.yaml -A product-api
+	swagger generate client -f ../swagger.yaml -A product-api
