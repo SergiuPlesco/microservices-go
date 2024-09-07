@@ -11,6 +11,7 @@ import (
 	"github.com/SergiuPlesco/microservices-go/gorilla/data"
 	"github.com/SergiuPlesco/microservices-go/gorilla/handlers"
 	"github.com/go-openapi/runtime/middleware"
+	corsHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
@@ -44,10 +45,12 @@ func main() {
 	getRouter.Handle("/docs", sh)
 	getRouter.Handle("/swagger.yaml", http.FileServer(http.Dir("./")))
 
+	ch := corsHandlers.CORS(corsHandlers.AllowedOrigins([]string{"http://localhost:3000", "http://localhost:3001"}))
+
 	// create new server
 	s := &http.Server{
 		Addr:         ":9100",           // configure the bind address
-		Handler:      sm,                //set the default handler
+		Handler:      ch(sm),            //set the default handler
 		ErrorLog:     l,                 // set the logger for the server
 		IdleTimeout:  120 * time.Second, // max time to read request from the client
 		ReadTimeout:  1 * time.Second,   // max time to write response to the client
