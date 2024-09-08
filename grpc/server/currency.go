@@ -2,22 +2,29 @@ package server
 
 import (
 	"context"
-	"log"
 
+	"github.com/SergiuPlesco/microservices-go/grpc/data"
 	"github.com/SergiuPlesco/microservices-go/grpc/pb"
+	"github.com/hashicorp/go-hclog"
 )
 
 type Currency struct {
 	pb.UnimplementedCurrencyServer
-	l *log.Logger
+	r *data.ExchangeRates
+	l hclog.Logger
 }
 
-func NewCurrency(l *log.Logger) *Currency {
-	return &Currency{l: l}
+func NewCurrency(r *data.ExchangeRates, l hclog.Logger) *Currency {
+	return &Currency{l: l, r: r}
 }
 
 func (c *Currency) GetRate(ctx context.Context, req *pb.RateRequest) (*pb.RateResponse, error) {
-	c.l.Println("Handle GetRate", "base", req.GetBase(), "destination", req.GetDestination())
+	c.l.Debug("Handle GetRate", "base", req.GetBase(), "destination", req.GetDestination())
 
-	return &pb.RateResponse{Rate: 0.5}, nil
+	rate, err := c.r.GetRate(req.GetBase().String(), req.GetDestination().String())
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.RateResponse{Rate: rate}, nil
 }
